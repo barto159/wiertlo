@@ -36,9 +36,7 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
-void PWM_START();
-void stepper_resolution();
-void one_step();
+
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/

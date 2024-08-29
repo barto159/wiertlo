@@ -22,6 +22,11 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdbool.h>
+#include "PWM.h"
+#include "can.h"
+#include "gpio.h"
+#include "hx711.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -39,9 +44,9 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-CAN_HandleTypeDef hcan;
 
-TIM_HandleTypeDef htim2;
+
+
 
 /* USER CODE BEGIN PV */
 
@@ -49,40 +54,24 @@ TIM_HandleTypeDef htim2;
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-static void MX_GPIO_Init(void);
-static void MX_TIM2_Init(void);
-static void MX_CAN_Init(void);
+
+
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-float duty =500;
-int krok=1;
-volatile int can=0;
-float speed=75;
 
-void motor_speed();
-CAN_TxHeaderTypeDef   TxHeader;
-	uint8_t               TxData[8];
-	uint32_t              TxMailbox;
-	CAN_RxHeaderTypeDef   RxHeader;
-	uint8_t               RxData[8];
-	void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
-	{
-	  if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, RxData) != HAL_OK)
-	  {
-	    Error_Handler();
-	  }
-	  HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
-	}
-	void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan) {
+extern CAN_TxHeaderTypeDef   TxHeader;
+extern uint8_t               TxData[8];
+extern uint32_t              TxMailbox;
+extern CAN_RxHeaderTypeDef   RxHeader;
+extern uint8_t               RxData[8];
+extern int step;
+void stepper_resolution();
+void one_step();
 
-		HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO1, &RxHeader, RxData);
-
-
-	}
 /* USER CODE END 0 */
 
 /**
@@ -196,172 +185,26 @@ void SystemClock_Config(void)
   * @param None
   * @retval None
   */
-static void MX_CAN_Init(void)
-{
-	CAN_FilterTypeDef  sFilterConfig;
-	  hcan.Instance = CAN1;
-	  hcan.Init.Prescaler = 4;//4
-	  hcan.Init.Mode = CAN_MODE_NORMAL;
-	  hcan.Init.SyncJumpWidth = CAN_SJW_1TQ;
-	  hcan.Init.TimeSeg1 = CAN_BS1_9TQ;//9
-	  hcan.Init.TimeSeg2 = CAN_BS2_8TQ;//8
-	  hcan.Init.TimeTriggeredMode = DISABLE;
-	  hcan.Init.AutoBusOff = DISABLE;
-	  hcan.Init.AutoWakeUp = DISABLE;
-	  hcan.Init.AutoRetransmission = ENABLE;
-	  hcan.Init.ReceiveFifoLocked = DISABLE;
-	  hcan.Init.TransmitFifoPriority = DISABLE;
-	  if (HAL_CAN_Init(&hcan) != HAL_OK)
-	  {
-	    Error_Handler();
-	  }
 
-
-
-	  sFilterConfig.FilterBank = 0;
-		    sFilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
-		    sFilterConfig.FilterScale = CAN_FILTERSCALE_16BIT;
-		    sFilterConfig.FilterIdHigh = 0x0000;
-		    sFilterConfig.FilterIdLow = 0x0000;
-		    sFilterConfig.FilterMaskIdHigh = 0x0000;
-		    sFilterConfig.FilterMaskIdLow = 0x0000;
-		    sFilterConfig.FilterFIFOAssignment = CAN_RX_FIFO0;
-		    sFilterConfig.FilterActivation = ENABLE;
-		    sFilterConfig.SlaveStartFilterBank = 0;
-
-		    if (HAL_CAN_ConfigFilter(&hcan, &sFilterConfig) != HAL_OK)
-		    {
-		      /* Filter configuration Error */
-		      Error_Handler();
-		    }
-			if (HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING)!=HAL_OK)
-			  {
-				  Error_Handler();
-			  }
-			if (HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO1_MSG_PENDING)!=HAL_OK)
-						  {
-							  Error_Handler();
-						  }
-
-
-
-		  HAL_CAN_Start(&hcan);
-}
 
 /**
   * @brief TIM2 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_TIM2_Init(void)
-{
 
-  /* USER CODE BEGIN TIM2_Init 0 */
-
-  /* USER CODE END TIM2_Init 0 */
-
-  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
-  TIM_MasterConfigTypeDef sMasterConfig = {0};
-  TIM_OC_InitTypeDef sConfigOC = {0};
-
-  /* USER CODE BEGIN TIM2_Init 1 */
-
-  /* USER CODE END TIM2_Init 1 */
-  htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 159;
-  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 999;
-  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_TIM_PWM_Init(&htim2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 0;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN TIM2_Init 2 */
-
-  /* USER CODE END TIM2_Init 2 */
-  HAL_TIM_MspPostInit(&htim2);
-
-}
 
 /**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
   */
-static void MX_GPIO_Init(void)
-{
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-  /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOA_CLK_ENABLE();
-  __HAL_RCC_GPIOC_CLK_ENABLE();
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(OK_GPIO_Port, OK_Pin, GPIO_PIN_SET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, MS1_Pin|MS2_Pin|MS3_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, STEP_Pin|DIRECTION_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pins : OK_Pin MS1_Pin MS2_Pin MS3_Pin */
-  GPIO_InitStruct.Pin = OK_Pin|MS1_Pin|MS2_Pin|MS3_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : STEP_Pin DIRECTION_Pin */
-  GPIO_InitStruct.Pin = STEP_Pin|DIRECTION_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
-  GPIO_InitStruct.Pin = LD2_Pin;
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(LD2_GPIO_Port, &GPIO_InitStruct);
-
-
-}
 
 /* USER CODE BEGIN 4 */
 
 
-void PWM_START()
-{
 
-	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
-
-}
 
 
 
@@ -381,7 +224,7 @@ void stepper_resolution()
 
 void one_step()
 {
-if(RxData[0]==1)
+if(step==1)
 {
 	for(int i =0; i<80; i++){
 		  HAL_Delay(10);
@@ -389,17 +232,10 @@ if(RxData[0]==1)
 		  HAL_GPIO_TogglePin(STEP_GPIO_Port, STEP_Pin);
 		  }
 }
-RxData[0]==0;
+step=0;
 }
 
-void motor_speed()
-{
-speed=(float)RxData[1];
 
-	__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, speed);
-
-
-}
 /* USER CODE END 4 */
 
 /**

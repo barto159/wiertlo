@@ -60,8 +60,8 @@ all: main-build
 main-build: wiertlo.elf secondary-outputs
 
 # Tool invocations
-wiertlo.elf wiertlo.map: $(OBJS) $(USER_OBJS) C:\Users\barto\OneDrive\Pulpit\stm32\wiertlo\STM32F103RBTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "wiertlo.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"C:\Users\barto\OneDrive\Pulpit\stm32\wiertlo\STM32F103RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="wiertlo.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+wiertlo.elf wiertlo.map: $(OBJS) $(USER_OBJS) C:\Users\barto\OneDrive\Pulpit\wiertlo\STM32F103RBTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "wiertlo.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"C:\Users\barto\OneDrive\Pulpit\wiertlo\STM32F103RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="wiertlo.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
